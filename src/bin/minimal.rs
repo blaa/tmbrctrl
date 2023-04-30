@@ -1,5 +1,5 @@
 #![deny(unsafe_code)]
-#![deny(warnings)]
+// #![deny(warnings)]
 #![no_main]
 #![no_std]
 #![feature(type_alias_impl_trait)]
@@ -7,9 +7,12 @@
 
 use tmbrctrl as _; // global logger + panicking-behavior + memory layout
 
-use rtic_monotonics::systick::*;
+use rtic_monotonics::systick::Systick;
 
 use stm32f1xx_hal::prelude::*;
+use stm32f1xx_hal::{
+    gpio::{self, Output, PushPull}
+};
 
 #[rtic::app(
     device = stm32f1xx_hal::pac,
@@ -17,6 +20,7 @@ use stm32f1xx_hal::prelude::*;
     dispatchers = [SPI1, SPI2]
 )]
 mod app {
+    use super::*;
     // Shared resources go here
     #[shared]
     struct Shared {
@@ -27,15 +31,27 @@ mod app {
     #[local]
     struct Local {
         // TODO: Add resources
+        led: gpio::PC13<Output<PushPull>>
     }
 
     #[init]
     fn init(cx: init::Context) -> (Shared, Local) {
+        let mut flash = cx.device.FLASH.constrain();
+        let rcc = cx.device.RCC.constrain();
+
         defmt::info!("init");
 
         let token = rtic_monotonics::create_systick_token!();
         Systick::start(cx.core.SYST, 72_000_000, token);
 
+        let _clocks = rcc
+            .cfgr
+            .use_hse(8.MHz())
+            .sysclk(72.MHz())
+            .pclk1(36.MHz())
+            .freeze(&mut flash.acr);
+
+        let mut gpioc = cx.device.GPIOC.split();
 
         task1::spawn().ok();
 
@@ -45,22 +61,32 @@ mod app {
             },
             Local {
                 // Initialization of local resources go here
+                led: gpioc.pc13.into_push_pull_output(&mut gpioc.crh)
             },
         )
     }
 
     // Optional idle, can be removed if not needed.
     #[idle]
-    fn idle(_: idle::Context) -> ! {
+    fn idle(_cx: idle::Context) -> ! {
         defmt::info!("idle");
+        let mut cnt: i64 = 0;
 
         loop {
+            // cx.local.led.set_high();
+            defmt::info!("Idling like hell {}", cnt);
+            cnt += 1;
             continue;
         }
     }
 
-    #[task]
-    async fn task1(_cx: task1::Context) {
+    #[task(local=[led], priority=1)]
+    async fn task1(cx: task1::Context) {
         defmt::info!("Hello from task1!");
+        loop {
+            cx.local.led.toggle();
+            Systick::delay(100.millis()).await;
+            defmt::info!("Hello2 from task1!");
+        }
     }
 }
