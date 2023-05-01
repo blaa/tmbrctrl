@@ -73,7 +73,6 @@ mod app {
         let mut cnt: i64 = 0;
 
         loop {
-            // cx.local.led.set_high();
             defmt::info!("Idling like hell {}", cnt);
             cnt += 1;
             continue;
@@ -85,7 +84,7 @@ mod app {
         defmt::info!("Hello from task1!");
         loop {
             cx.local.led.toggle();
-            Systick::delay(100.millis()).await;
+            Systick::delay(50.millis()).await;
             defmt::info!("Hello2 from task1!");
         }
     }

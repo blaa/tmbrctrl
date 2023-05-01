@@ -6,12 +6,16 @@ version = "0.1.0"
 
 [dependencies]
 cortex-m = { version = "0.7", features = ["critical-section-single-core"] }
-defmt = "0.3"
+# defmt = "0.3.4"
+defmt = { version = "0.3.4", features = ["encoding-rzcobs"] }
 defmt-brtt = "0.1.1"
 # defmt-rtt = "0.4"
 panic-probe = { version = "0.3", features = ["print-defmt"] }
 rtic = { version = "2.0.0-alpha.1", features = [ "thumbv7-backend" ] }
 rtic-monotonics = { version = "1.0.0-alpha.2", features = [ "cortex-m-systick" ]}
+
+# CAN deps
+# embedded_can = { version = "0.4.1"}
 
 [dependencies.stm32f1xx-hal]
 # Bluepill contains a 64kB flash variant which is called "medium density"
